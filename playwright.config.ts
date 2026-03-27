@@ -24,7 +24,7 @@ export default defineConfig({
       testDir: './tests/web',
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: 'https://blogdoagi.com.br',
+        baseURL: 'https://blog.agibank.com.br',
         headless: true,
       },
     },
