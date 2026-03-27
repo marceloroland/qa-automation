@@ -29,12 +29,8 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run Web tests (Blog do Agi)
-        run: npm run test:web
-        continue-on-error: true
-
-      - name: Run API tests (Dog API)
-        run: npm run test:api
+      - name: Run all tests (Web + API)
+        run: npm test
 
       - name: Upload Playwright HTML report
         if: always()
