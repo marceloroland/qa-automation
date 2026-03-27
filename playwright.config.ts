@@ -32,7 +32,7 @@ export default defineConfig({
       name: 'api',
       testDir: './tests/api',
       use: {
-        baseURL: 'https://dog.ceo/api',
+        baseURL: 'https://dog.ceo',
       },
     },
   ],

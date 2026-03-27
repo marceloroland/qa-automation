@@ -19,7 +19,7 @@ test.describe('Dog API – Breed Endpoints', () => {
   test.describe('GET /breeds/list/all', () => {
 
     test('should return 200 and status "success"', async ({ request }) => {
-      const response = await request.get('/breeds/list/all');
+      const response = await request.get('/api/breeds/list/all');
 
       expect(response.status()).toBe(200);
 
@@ -28,7 +28,7 @@ test.describe('Dog API – Breed Endpoints', () => {
     });
 
     test('should return a non-empty breeds object', async ({ request }) => {
-      const response = await request.get('/breeds/list/all');
+      const response = await request.get('/api/breeds/list/all');
       const body = await response.json();
 
       expect(typeof body.message).toBe('object');
@@ -36,7 +36,7 @@ test.describe('Dog API – Breed Endpoints', () => {
     });
 
     test('should contain well-known breeds', async ({ request }) => {
-      const response = await request.get('/breeds/list/all');
+      const response = await request.get('/api/breeds/list/all');
       const body = await response.json();
 
       const breeds: string[] = Object.keys(body.message);
@@ -46,7 +46,7 @@ test.describe('Dog API – Breed Endpoints', () => {
     });
 
     test('should list sub-breeds as arrays', async ({ request }) => {
-      const response = await request.get('/breeds/list/all');
+      const response = await request.get('/api/breeds/list/all');
       const body = await response.json();
 
       // Every value must be an array (empty or populated)
@@ -62,7 +62,7 @@ test.describe('Dog API – Breed Endpoints', () => {
   test.describe('GET /breed/{breed}/images', () => {
 
     test('should return 200 and status "success" for a valid breed', async ({ request }) => {
-      const response = await request.get('/breed/labrador/images');
+      const response = await request.get('/api/breed/labrador/images');
 
       expect(response.status()).toBe(200);
 
@@ -71,7 +71,7 @@ test.describe('Dog API – Breed Endpoints', () => {
     });
 
     test('should return a non-empty array of image URLs for a valid breed', async ({ request }) => {
-      const response = await request.get('/breed/labrador/images');
+      const response = await request.get('/api/breed/labrador/images');
       const body = await response.json();
 
       expect(Array.isArray(body.message)).toBe(true);
@@ -79,7 +79,7 @@ test.describe('Dog API – Breed Endpoints', () => {
     });
 
     test('every image URL should match the expected pattern', async ({ request }) => {
-      const response = await request.get('/breed/labrador/images');
+      const response = await request.get('/api/breed/labrador/images');
       const body = await response.json();
 
       for (const url of body.message as string[]) {
@@ -88,7 +88,7 @@ test.describe('Dog API – Breed Endpoints', () => {
     });
 
     test('should return 404 for a non-existent breed', async ({ request }) => {
-      const response = await request.get('/breed/breedthatdoesnotexist/images');
+      const response = await request.get('/api/breed/breedthatdoesnotexist/images');
 
       expect(response.status()).toBe(404);
 
@@ -99,7 +99,7 @@ test.describe('Dog API – Breed Endpoints', () => {
 
     test('should return images for a breed with sub-breeds', async ({ request }) => {
       // "bulldog" has sub-breeds: boston, english, french
-      const response = await request.get('/breed/bulldog/images');
+      const response = await request.get('/api/breed/bulldog/images');
 
       expect(response.status()).toBe(200);
       const body = await response.json();
@@ -113,7 +113,7 @@ test.describe('Dog API – Breed Endpoints', () => {
   test.describe('GET /breeds/image/random', () => {
 
     test('should return 200 and status "success"', async ({ request }) => {
-      const response = await request.get('/breeds/image/random');
+      const response = await request.get('/api/breeds/image/random');
 
       expect(response.status()).toBe(200);
 
@@ -122,7 +122,7 @@ test.describe('Dog API – Breed Endpoints', () => {
     });
 
     test('should return a valid image URL', async ({ request }) => {
-      const response = await request.get('/breeds/image/random');
+      const response = await request.get('/api/breeds/image/random');
       const body = await response.json();
 
       expect(typeof body.message).toBe('string');
@@ -131,8 +131,8 @@ test.describe('Dog API – Breed Endpoints', () => {
 
     test('should return a different image on consecutive calls', async ({ request }) => {
       const [r1, r2] = await Promise.all([
-        request.get('/breeds/image/random'),
-        request.get('/breeds/image/random'),
+        request.get('/api/breeds/image/random'),
+        request.get('/api/breeds/image/random'),
       ]);
 
       const b1 = await r1.json();
@@ -145,7 +145,7 @@ test.describe('Dog API – Breed Endpoints', () => {
 
     test('should return a random image from a specific count endpoint', async ({ request }) => {
       const count = 3;
-      const response = await request.get(`/breeds/image/random/${count}`);
+      const response = await request.get(`/api/breeds/image/random/${count}`);
 
       expect(response.status()).toBe(200);
 
