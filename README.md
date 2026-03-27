@@ -6,6 +6,7 @@ Automated test suite covering two challenges:
 |---|---|---|
 | **Web** | [Blog do Agi](https://blogdoagi.com.br/) – search feature | Playwright (browser) |
 | **API** | [Dog API](https://dog.ceo/dog-api/documentation) | Playwright (request context) |
+| **Performance** | [BlazeDemo](https://www.blazedemo.com) – airline ticket purchase | Apache JMeter 5.6.3 |
 
 ---
 
