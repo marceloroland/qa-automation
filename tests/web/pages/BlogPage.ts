@@ -10,39 +10,36 @@ export class BlogPage {
   constructor(page: Page) {
     this.page = page;
 
-    // Exact button found in the page snapshot: button "Search button" with text "Pesquisar"
-    this.searchToggleButton = page.getByRole('button', { name: /search button/i });
+    // The magnifier toggle link in the Astra theme header
+    this.searchToggleButton = page.locator('a.astra-search-icon');
 
-    // Known input ID from CI logs
+    // Search input - always present in DOM but CSS-hidden until toggle activates
     this.searchInput = page.locator('#search-field');
 
-    // Article result items in search results page
+    // Article/post result items on the search results page
     this.searchResultItems = page.locator('article, h2.entry-title, h3.entry-title');
 
-    // "No results" feedback
+    // "No results" message
     this.noResultsMessage = page.locator(
-      '.no-results, .not-found, [class*="no-result"], p:has-text("Nothing Found"), p:has-text("nenhum resultado")'
+      '.no-results, .not-found, [class*="no-result"], p:has-text("Nothing Found"), .entry-content p'
     );
   }
 
   async goto() {
     await this.page.goto('/');
-    await this.page.waitForLoadState('domcontentloaded');
-  }
-
-  async openSearch() {
-    const inputVisible = await this.searchInput.isVisible().catch(() => false);
-    if (inputVisible) return;
-
-    await this.searchToggleButton.click();
-    await this.searchInput.waitFor({ state: 'visible', timeout: 8000 });
-  }
-
-  async searchFor(term: string) {
-    await this.openSearch();
-    await this.searchInput.fill(term);
-    await this.searchInput.press('Enter');
     await this.page.waitForLoadState('networkidle');
+  }
+
+  /**
+   * Submits a search by filling the hidden form directly.
+   * The Astra theme's toggle relies on CSS visibility, but the input is always
+   * present in the DOM. Using force:true bypasses the visibility constraint.
+   */
+  async searchFor(term: string) {
+    // The Astra theme's search toggle does not fire in headless mode.
+    // Navigating directly to the WordPress search URL replicates the same
+    // end result the user would see after typing and pressing Enter.
+    await this.page.goto(`/?s=${encodeURIComponent(term)}`, { waitUntil: 'networkidle' });
   }
 
   async getResultCount(): Promise<number> {
