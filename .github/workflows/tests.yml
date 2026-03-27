@@ -12,14 +12,17 @@ permissions:
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: Run Playwright Tests
+
+  # ──────────────────────────────────────────────
+  # JOB 1 – Playwright (Web + API)
+  # ──────────────────────────────────────────────
+  playwright:
+    name: Playwright Tests (Web + API)
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -50,7 +53,7 @@ jobs:
           path: test-results/
           retention-days: 7
 
-      - name: Upload Playwright HTML report as artifact
+      - name: Upload Playwright HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -58,15 +61,70 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-      - name: Upload report to GitHub Pages
-        if: always()
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: playwright-report/
+  # ──────────────────────────────────────────────
+  # JOB 2 – JMeter Performance (Load Test)
+  # Reduced to 60s duration for CI pipelines.
+  # Run the full 300s version locally.
+  # ──────────────────────────────────────────────
+  performance:
+    name: JMeter Load Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Download Apache JMeter
+        run: |
+          wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
+          tar -xzf apache-jmeter-5.6.3.tgz
+          echo "$(pwd)/apache-jmeter-5.6.3/bin" >> $GITHUB_PATH
+
+      - name: Create output directories
+        run: mkdir -p performance/reports/load-test/html
+
+      - name: Run JMeter Load Test (60s CI run)
+        run: |
+          jmeter -n \
+            -t performance/load-test.jmx \
+            -l performance/reports/load-test/results.jtl \
+            -e -o performance/reports/load-test/html \
+            -j performance/reports/load-test/jmeter.log \
+            -Jduration=60 \
+            -Jrampup=20 \
+            -Jthreads=50
+        continue-on-error: true
+
+      - name: Upload JMeter HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmeter-report
+          path: performance/reports/load-test/html/
+          retention-days: 30
+
+      - name: Upload JMeter JTL results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmeter-jtl
+          path: performance/reports/load-test/results.jtl
+          retention-days: 30
+
+  # ──────────────────────────────────────────────
+  # JOB 3 – Deploy both reports to GitHub Pages
+  # Combines Playwright + JMeter under one site
+  # ──────────────────────────────────────────────
   deploy:
-    name: Deploy report to GitHub Pages
-    needs: test
+    name: Deploy Reports to GitHub Pages
+    needs: [playwright, performance]
     if: always()
     runs-on: ubuntu-latest
     environment:
@@ -74,6 +132,59 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
+      - name: Download Playwright report
+        uses: actions/download-artifact@v4
+        with:
+          name: playwright-report
+          path: combined-report/playwright
+
+      - name: Download JMeter report
+        uses: actions/download-artifact@v4
+        with:
+          name: jmeter-report
+          path: combined-report/performance
+        continue-on-error: true
+
+      - name: Create index page linking both reports
+        run: |
+          cat > combined-report/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="pt-BR">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>QA Automation Reports</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 700px; margin: 60px auto; padding: 0 20px; color: #333; }
+              h1 { color: #1a1a2e; border-bottom: 3px solid #4a90d9; padding-bottom: 10px; }
+              .card { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 24px; margin: 20px 0; }
+              .card h2 { margin: 0 0 8px; color: #2c3e50; }
+              .card p { margin: 0 0 16px; color: #666; font-size: 14px; }
+              a.btn { display: inline-block; background: #4a90d9; color: #fff; text-decoration: none; padding: 10px 22px; border-radius: 5px; font-weight: 600; }
+              a.btn:hover { background: #357abd; }
+            </style>
+          </head>
+          <body>
+            <h1>QA Automation – Test Reports</h1>
+            <div class="card">
+              <h2>Playwright – Web &amp; API Tests</h2>
+              <p>Blog do Agi search scenarios + Dog API endpoint validation</p>
+              <a class="btn" href="playwright/index.html">View Report</a>
+            </div>
+            <div class="card">
+              <h2>JMeter – Performance Load Test</h2>
+              <p>BlazeDemo airline purchase – 250 req/s acceptance criteria</p>
+              <a class="btn" href="performance/index.html">View Report</a>
+            </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload combined report to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: combined-report/
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
